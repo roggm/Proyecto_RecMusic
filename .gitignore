@@ -1,0 +1,37 @@
+# ─── Datos (van en S3, no en git) ───
+data/raw/
+data/processed/
+*.csv
+*.json
+*.parquet
+
+# Excepciones: muestras pequeñas para referencia
+!data/samples/
+!tests/fixtures/
+
+# ─── Python ───
+__pycache__/
+*.pyc
+*.pyo
+.venv/
+venv/
+env/
+*.egg-info/
+dist/
+.ipynb_checkpoints/
+
+# ─── Variables de entorno y credenciales ───
+.env
+*.pem
+*.key
+
+# ─── Terraform ───
+infrastructure/.terraform/
+infrastructure/.terraform.lock.hcl
+infrastructure/terraform.tfstate
+infrastructure/terraform.tfstate.backup
+infrastructure/terraform.tfvars
+
+# ─── OS ───
+.DS_Store
+Thumbs.db
