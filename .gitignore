@@ -1,4 +1,5 @@
 # ─── Datos (van en S3, no en git) ───
+data/raw/
 data/processed/
 *.csv
 *.json
