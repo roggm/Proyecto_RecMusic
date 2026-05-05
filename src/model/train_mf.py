@@ -9,7 +9,7 @@ import pandas as pd
 import torch
 from sklearn.model_selection import train_test_split
 from torch.utils.data import DataLoader, Dataset
-
+import random
 
 RATING_MAP = {"like": 3.0, "play": 2.0, "skip": 1.0}
 
@@ -51,7 +51,7 @@ class MatrixFactorization(torch.nn.Module):
         return dot + ub + ib + self.global_bias
 
 
-def train_test_per_user(ratings_df, n_val_per_user=1, min_interactions=1, seed=42):
+def train_test_per_user(ratings_df, n_val_per_user=1, min_interactions=1, seed=random.randint(0, 2**32 - 1)):
     rng = np.random.RandomState(seed)
     train_parts = []
     val_parts = []
@@ -99,13 +99,13 @@ def prepare_indices(ratings):
 
 def run_training(
     data_dir,
-    n_factors=64,
+    n_factors=16,
     epochs=50,
     lr=1e-3,
     batch_size=4096,
     weight_decay=1e-5,
     patience=5,
-    val_per_user=1,
+    val_per_user=4,
     device='cpu',
 ):
     items, interactions, ratings = load_data(data_dir)
