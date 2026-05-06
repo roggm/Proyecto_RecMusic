@@ -12,9 +12,13 @@ from torch.utils.data import DataLoader, Dataset
 import random
 
 RATING_MAP = {"like": 3.0, "play": 2.0, "skip": 1.0}
+# Mapeo simple de eventos a una escala numérica de 1.0 a 3.0
+# (se usa como 'rating' para entrenar el modelo de factorización matricial).
 
 
 class InteractionsDataset(Dataset):
+    # Dataset ligero que entrega tuplas (user_idx, item_idx, rating)
+    # convertido a tipos compatibles con PyTorch.
     def __init__(self, users, items, ratings):
         self.users = users.astype(np.int64)
         self.items = items.astype(np.int64)
@@ -30,6 +34,9 @@ class InteractionsDataset(Dataset):
 class MatrixFactorization(torch.nn.Module):
     def __init__(self, n_users, n_items, n_factors=32):
         super().__init__()
+        # Embeddings para usuarios y items (vectores latentes)
+        # y términos de sesgo (bias) por usuario/item además de
+        # un término global para ajustar la media.
         self.user_emb = torch.nn.Embedding(n_users, n_factors)
         self.item_emb = torch.nn.Embedding(n_items, n_factors)
         self.user_bias = torch.nn.Embedding(n_users, 1)
@@ -48,15 +55,19 @@ class MatrixFactorization(torch.nn.Module):
         ub = self.user_bias(u).squeeze(-1)
         ib = self.item_bias(i).squeeze(-1)
         dot = (pu * qi).sum(dim=1)
+        # Predicción: producto punto entre embeddings + sesgos
         return dot + ub + ib + self.global_bias
 
 
 def train_test_per_user(ratings_df, n_val_per_user=1, min_interactions=1, seed=random.randint(0, 2**32 - 1)):
+    # Divide interacciones por usuario, reservando hasta `n_val_per_user`
+    # para validación por cada usuario con suficientes interacciones.
     rng = np.random.RandomState(seed)
     train_parts = []
     val_parts = []
 
     for uid, group in ratings_df.groupby('USER_ID'):
+        # Usuarios con pocas interacciones van completamente al train
         if len(group) <= min_interactions:
             train_parts.append(group)
             continue
@@ -84,6 +95,7 @@ def load_data(data_dir: Path):
         .max()
         .reset_index()
     )
+    # Devuelve items, interacciones originales y la tabla de ratings agregada
     return items, interactions, ratings
 
 
@@ -94,6 +106,8 @@ def prepare_indices(ratings):
     item_to_idx = {s: i for i, s in enumerate(items)}
     ratings['u_idx'] = ratings['USER_ID'].map(user_to_idx)
     ratings['i_idx'] = ratings['ITEM_ID'].map(item_to_idx)
+    # Añade columnas con índices numéricos para usuarios y items; devuelve
+    # el DataFrame actualizado y los mapeos para uso posterior.
     return ratings, user_to_idx, item_to_idx
 
 
@@ -116,6 +130,7 @@ def run_training(
 
     train_df, val_df = train_test_per_user(ratings, n_val_per_user=val_per_user)
 
+    # Crear datasets y dataloaders de PyTorch para entrenamiento y validación
     train_ds = InteractionsDataset(train_df['u_idx'].to_numpy(), train_df['i_idx'].to_numpy(), train_df['rating'].to_numpy())
     train_loader = DataLoader(train_ds, batch_size=batch_size, shuffle=True)
 
@@ -210,6 +225,7 @@ def run_training(
                 no_improvement = 0
                 # Save best model
                 best_path = data_dir / 'modelo_mf_best.pt'
+                # Guardamos el estado del modelo y los mapeos para inferencia posterior
                 torch.save({'model_state': model.state_dict(), 'user_to_idx': user_to_idx, 'item_to_idx': item_to_idx}, best_path)
             else:
                 no_improvement += 1
