@@ -223,7 +223,7 @@ def run_training(
             if val_loss < best_val_loss:
                 best_val_loss = val_loss
                 no_improvement = 0
-                # Save best model
+                # Guarda best model
                 best_path = data_dir / 'modelo_mf_best.pt'
                 # Guardamos el estado del modelo y los mapeos para inferencia posterior
                 torch.save({'model_state': model.state_dict(), 'user_to_idx': user_to_idx, 'item_to_idx': item_to_idx}, best_path)
@@ -233,7 +233,7 @@ def run_training(
                     print(f'Early stopping triggered! (no improvement in {patience} epochs)')
                     break
 
-    # Save final model and history
+    # Guarda final model and history
     out_model = data_dir / 'modelo_mf_final.pt'
     torch.save({'model_state': model.state_dict(), 'user_to_idx': user_to_idx, 'item_to_idx': item_to_idx}, out_model)
 
