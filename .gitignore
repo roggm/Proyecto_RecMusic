@@ -19,23 +19,49 @@ env/
 *.egg-info/
 dist/
 .ipynb_checkpoints/
+*.egg
 
 # ─── Variables de entorno y credenciales ───
 .env
+.env.local
+.env.*.local
 *.pem
 *.key
 
 # ─── Terraform ───
 infra/.terraform/
-infra/terraform.lock.hcl
+infra/.terraform.lock.hcl
 infra/terraform.tfstate
 infra/terraform.tfstate.backup
 infra/terraform.tfvars
+infra/crash.log
+infra/crash.*.log
 .terraform/
 *.tfstate
 *.tfstate.*
 .terraform.lock.hcl
 
+# ─── Frontend ───
+frontend/node_modules/
+frontend/dist/
+frontend/.env.local
+
+# ─── IDE ───
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# ─── Notebooks temporales ───
+**/prueba.ipynb
+**/*temp*.ipynb
+
 # ─── OS ───
 .DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
 Thumbs.db
+ehthumbs.db
