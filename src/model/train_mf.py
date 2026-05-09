@@ -114,12 +114,12 @@ def prepare_indices(ratings):
 def run_training(
     data_dir,
     n_factors=16,
-    epochs=50,
+    epochs=70,
     lr=1e-3,
     batch_size=4096,
-    weight_decay=1e-5,
+    weight_decay=1e-4,
     patience=5,
-    val_per_user=4,
+    val_per_user=3,
     device='cpu',
 ):
     items, interactions, ratings = load_data(data_dir)
