@@ -11,6 +11,9 @@ resource "aws_lambda_function" "recommender" {
   role             = aws_iam_role.lambda_exec.arn
   handler          = "handler.handler"
   runtime          = "python3.12"
+
+  layers = var.numpy_layer_arn != "" ? [var.numpy_layer_arn] : []
+
   timeout          = 60      # el modelo tarda en cargarse la primera vez
   memory_size      = 512     # numpy necesita más memoria que el handler anterior
 
