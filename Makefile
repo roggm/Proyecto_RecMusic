@@ -1,82 +1,81 @@
-.PHONY: help init validate-structure clean
+.PHONY: help install train validate run run-api run-frontend clean
 
-BUCKET ?= music-recommender-bucket
-REGION ?= us-east-1
+PYTHON  ?= python3
+API_HOST ?= 127.0.0.1
+API_PORT ?= 8000
 
-# ─────────────────────────────────────────
-# DEFAULT
-# ─────────────────────────────────────────
+# ─────────────────────────────────────────────────────────────
+# AYUDA
+# ─────────────────────────────────────────────────────────────
 help:
 	@echo ""
-	@echo "Music Recommender — Comandos disponibles:"
+	@echo "RecMusic — Comandos disponibles:"
 	@echo ""
-	@echo "  make init                 Crea el skeleton del proyecto"
-	@echo "  make validate-structure   Verifica que el skeleton esté completo"
-	@echo "  make tf-init              Inicializa Terraform"
-	@echo "  make tf-plan              Muestra qué va a crear en AWS"
-	@echo "  make tf-apply             Crea la infraestructura en AWS"
-	@echo "  make tf-destroy           Destruye toda la infra de AWS"
-	@echo "  make clean                Limpia archivos temporales"
+	@echo "  make install      Instala dependencias de Python y Node"
+	@echo "  make train        Entrena los tres modelos en orden"
+	@echo "  make validate     Verifica que los modelos existen antes de correr"
+	@echo "  make run          Levanta API y frontend al mismo tiempo"
+	@echo "  make run-api      Solo levanta el API (puerto $(API_PORT))"
+	@echo "  make run-frontend Solo levanta el frontend (puerto 5173)"
+	@echo "  make clean        Borra __pycache__ y archivos .pyc"
 	@echo ""
 
-# ─────────────────────────────────────────
-# SKELETON
-# ─────────────────────────────────────────
-init:
-	mkdir -p data/raw
-	mkdir -p data/processed
-	mkdir -p data/samples
-	mkdir -p src/data
-	mkdir -p src/model
-	mkdir -p src/api
-	mkdir -p infrastructure/modules/s3
-	mkdir -p infrastructure/modules/personalize
-	mkdir -p infrastructure/modules/lambda
-	mkdir -p infrastructure/modules/api_gateway
-	mkdir -p notebooks
-	mkdir -p tests/fixtures
-	mkdir -p docs
-	touch src/__init__.py
-	touch src/data/__init__.py
-	touch src/model/__init__.py
-	touch src/api/__init__.py
-	touch data/samples/.gitkeep
-	touch data/raw/.gitkeep
-	touch data/processed/.gitkeep
-	@echo "Skeleton creado ✅"
+# ─────────────────────────────────────────────────────────────
+# INSTALACIÓN
+# ─────────────────────────────────────────────────────────────
+install:
+	pip install fastapi uvicorn pandas numpy scipy scikit-learn jupyter nbconvert
+	cd frontend && npm install
+	@echo ""
+	@echo "Dependencias instaladas ✅"
 
-validate-structure:
-	@echo "Validando estructura del proyecto..."
-	@test -d data/raw             && echo "✅ data/raw" 	        || echo "❌ data/raw"
-	@test -d data/processed       && echo "✅ data/processed"     || echo "❌ data/processed"
-	@test -d data/samples         && echo "✅ data/samples"       || echo "❌ data/samples"
-	@test -d src/data             && echo "✅ src/data"           || echo "❌ src/data"
-	@test -d src/model            && echo "✅ src/model"          || echo "❌ src/model"
-	@test -d src/api              && echo "✅ src/api"            || echo "❌ src/api"
-	@test -d infrastructure       && echo "✅ infrastructure"     || echo "❌ infrastructure"
-	@test -d notebooks            && echo "✅ notebooks"          || echo "❌ notebooks"
-	@test -d tests                && echo "✅ tests"              || echo "❌ tests"
-	@echo "Validación completa ✅"
+# ─────────────────────────────────────────────────────────────
+# ENTRENAMIENTO
+# ─────────────────────────────────────────────────────────────
+train:
+	@echo "Entrenando collaborative → content_based → hybrid..."
+	$(PYTHON) -m jupyter nbconvert --to notebook --execute --inplace \
+		src/model/collaborative.ipynb
+	$(PYTHON) -m jupyter nbconvert --to notebook --execute --inplace \
+		src/model/content_based.ipynb
+	$(PYTHON) -m jupyter nbconvert --to notebook --execute --inplace \
+		src/model/hybrid.ipynb
+	@echo ""
+	@echo "Modelos entrenados ✅"
+	@echo "  data/processed/modelo_svd.pkl"
+	@echo "  data/processed/modelo_cb.pkl"
+	@echo "  data/processed/modelo_hybrid.pkl"
 
-# ─────────────────────────────────────────
-# TERRAFORM
-# ─────────────────────────────────────────
-tf-init:
-	cd infrastructure && terraform init
+# ─────────────────────────────────────────────────────────────
+# VALIDACIÓN
+# ─────────────────────────────────────────────────────────────
+validate:
+	@echo "Verificando modelos..."
+	@test -f data/processed/items.csv         && echo "  ✅ items.csv"          || (echo "  ❌ items.csv no encontrado"         && exit 1)
+	@test -f data/processed/interactions.csv  && echo "  ✅ interactions.csv"   || (echo "  ❌ interactions.csv no encontrado"  && exit 1)
+	@test -f data/processed/modelo_svd.pkl    && echo "  ✅ modelo_svd.pkl"     || (echo "  ❌ modelo_svd.pkl — corre: make train" && exit 1)
+	@test -f data/processed/modelo_cb.pkl     && echo "  ✅ modelo_cb.pkl"      || (echo "  ❌ modelo_cb.pkl  — corre: make train" && exit 1)
+	@test -f data/processed/modelo_hybrid.pkl && echo "  ✅ modelo_hybrid.pkl"  || (echo "  ❌ modelo_hybrid.pkl — corre: make train" && exit 1)
+	@echo ""
+	@echo "Todo listo para correr ✅"
 
-tf-plan:
-	cd infrastructure && terraform plan -var="bucket_name=$(BUCKET)" -var="aws_region=$(REGION)"
+# ─────────────────────────────────────────────────────────────
+# CORRER
+# ─────────────────────────────────────────────────────────────
+run: validate
+	uvicorn api_local:app --host $(API_HOST) --port $(API_PORT) --reload &
+	cd frontend && npm run dev
 
-tf-apply:
-	cd infrastructure && terraform apply -var="bucket_name=$(BUCKET)" -var="aws_region=$(REGION)"
+run-api:
+	uvicorn api_local:app --host $(API_HOST) --port $(API_PORT) --reload
 
-tf-destroy:
-	cd infrastructure && terraform destroy -var="bucket_name=$(BUCKET)" -var="aws_region=$(REGION)"
+run-frontend:
+	cd frontend && npm run dev
 
-# ─────────────────────────────────────────
+# ─────────────────────────────────────────────────────────────
 # LIMPIEZA
-# ─────────────────────────────────────────
+# ─────────────────────────────────────────────────────────────
 clean:
 	find . -type f -name "*.pyc" -delete
-	find . -type d -name "__pycache__" -delete
+	find . -type d -name "__pycache__" -exec rm -rf {} + 2>/dev/null || true
 	@echo "Limpieza completa ✅"
