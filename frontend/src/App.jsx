@@ -504,7 +504,7 @@ export default function App() {
           <span style={{ fontSize: "16px", fontWeight: "500" }}>RecMusic</span>
         </div>
         <p style={{ fontSize: "13px", color: "var(--color-text-tertiary)", margin: 0 }}>
-          Sistema recomendador de música · IA + AWS
+          Sistema recomendador de música
         </p>
       </div>
 
