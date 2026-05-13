@@ -2,7 +2,6 @@
 data/raw/
 data/processed/
 *.csv
-*.json
 *.parquet
 
 # Excepciones: muestras pequeñas para referencia
